@@ -7,4 +7,5 @@ dataclasses
 catboost
 xgboost
 dill
--e .
+hyperopt
+# -e .

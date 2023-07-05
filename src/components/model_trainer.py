@@ -2,6 +2,9 @@ import os
 import sys
 from dataclasses import dataclass
 
+import numpy as np
+from hyperopt import hp
+
 from catboost import CatBoostRegressor
 
 from sklearn.ensemble import (
@@ -10,7 +13,7 @@ from sklearn.ensemble import (
     RandomForestRegressor
 )
 
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression,Ridge,Lasso
 from sklearn.metrics import r2_score
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
@@ -38,15 +41,62 @@ class ModelTrainer:
             models = {
                 'Decision Tree': DecisionTreeRegressor(),
                 'K-Neighbors ': KNeighborsRegressor(),
-                'Linear Regression':LinearRegression(),
+                'Ridge':Ridge(),
+                'lasso':Lasso(),
                 'Random Forest':RandomForestRegressor(),
                 'Gradient Boosting':GradientBoostingRegressor(),
                 'XGBR':XGBRegressor(),
                 'Catboost':CatBoostRegressor(verbose=False),
                 'Adaboost':AdaBoostRegressor()
             }
+
+            # hyper parameter tuning
+            params = {
+                'Decision Tree': {
+                    'criterion' : ['squared_error','friedman_mse','absolute_error','poisson'],
+                    #'splitter':['best','random'],
+                    'max_features':['sqrt','log2']
+                },
+                'K-Neighbors ': {
+                        'n_neighbors' : [5,7,9,11,13,15],
+                        'weights' : ['uniform','distance'],
+                        'metric' : ['minkowski','euclidean','manhattan']
+                },
+                'Ridge':{
+                    'alpha':[1e-8,1e-3,1e-2,1,5,10,20,30,35,40,45,50,55,100]
+                },
+                'lasso':{
+                    'alpha':[1e-8,1e-3,1e-2,1,5,10,20,30,35,40,45,50,55,100]
+                },
+                'Random Forest':{
+                    'max_depth': [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, None],
+                    'min_samples_leaf': [1, 2, 4],
+                    'min_samples_split': [2, 5, 10],
+                    'n_estimators': [200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000]
+                },
+                'Gradient Boosting':{
+                    "n_estimators":[5,50,250,500],
+                    "max_depth":[1,3,5,7,9],
+                    "learning_rate":[0.01,0.1,1,10,100]
+                },
+                'XGBR':{
+                    'learning_rate' : [0.1,0.01,0.05,1],
+                    'n_estimators':[8,16,32,64,128,256],
+                },
+                'Catboost':{
+                    'depth':[6,8,10],
+                    'learning_rate':[0.01,0.05,0.1],
+                    'iterations':[30,50,100]
+                },
+                'Adaboost':{
+                    'learning_rate':[0.1,0.01,0.05,.001],
+                    'loss':['linear','square','exponential'],
+                    'n_estimators':[8,16,32,64,128,256]
+
+                }
+            }
             
-            model_report:dict = evaluate_models(Xtrain=X_train,Ytrain=y_train,Xtest=X_test,Ytest=y_test,models=models)
+            model_report:dict = evaluate_models(Xtrain=X_train,Ytrain=y_train,Xtest=X_test,Ytest=y_test,models=models,param_grid = params)
 
             best_model_score = max(sorted(model_report.values()))
 
